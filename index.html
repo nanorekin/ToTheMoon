@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ToTheMoon</title>
+<title>Merge</title>
 <meta name="description" content="A free coin-merging puzzle. Slide and merge coins up the ladder from Dogecoin to Nano. Daily challenge, a 90-second blitz and endless mode. No fees.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -106,11 +106,11 @@ footer { color:var(--muted); font-size:0.8rem; }
 @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; transition:none !important; } .tile { animation:none; } }
 </style></head>
 <body>
-<noscript><p style="padding:16px">ToTheMoon needs JavaScript to run.</p></noscript>
+<noscript><p style="padding:16px">Merge needs JavaScript to run.</p></noscript>
 <div class="layout">
   <main class="stage" id="stage">
     <div class="topbar">
-      <h1>ToTheMoon <span class="sup" id="supmark" hidden title="Supporter">&#10022;</span></h1>
+      <h1>Merge <span class="sup" id="supmark" hidden title="Supporter">&#10022;</span></h1>
       <button type="button" id="snd" aria-pressed="true" style="min-height:36px;padding:4px 12px;font-size:0.8rem">Sound on</button>
     </div>
     <div class="modes" role="group" aria-label="Mode">
@@ -583,7 +583,7 @@ footer { color:var(--muted); font-size:0.8rem; }
   function copyText(text, ok, fail) { try { navigator.clipboard.writeText(text).then(ok, fail); } catch (e) { fail(); } }
   function shareUrl() { return location.href.split("#")[0].split("?")[0]; }
   $("o-share").addEventListener("click", function () {
-    const head = mode === "daily" ? "ToTheMoon #" + dailyCfg.no : (mode === "endless" ? "ToTheMoon Endless" : "ToTheMoon Blitz");
+    const head = mode === "daily" ? "Merge #" + dailyCfg.no : (mode === "endless" ? "Merge Endless" : "Merge Blitz");
     const msg = head + ": score " + score + ", best tile " + tierInfo(maxTierSession).t + (wonThisSession ? " (reached Nano!)" : "") + "\nCan you beat it? " + shareUrl();
     const fallback = function () { copyText(msg, function () { $("o-status").textContent = "Copied. Paste it into a message to challenge a friend."; }, function () { $("o-status").textContent = msg; }); };
     if (navigator.share) { navigator.share({ text: msg }).catch(fallback); return; }

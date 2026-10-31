@@ -1,4 +1,4 @@
-# ToTheMoon
+# Merge
 
 A free, single-file browser coin-merging puzzle with Nano at its heart. Slide tiles up a ladder of coins — Dogecoin all the way to Nano — in the style of 2048. No build step, no backend, no fees.
 
@@ -16,10 +16,10 @@ Everything is stored in the player's browser.
 
 ## Deploy on GitHub Pages
 
-1. Create a new repository, for example `tothemoon`.
+1. Create a new repository, for example `merge`.
 2. Upload `index.html` and `README.md` to the root of the repository.
 3. Open **Settings > Pages**, set the source to **Deploy from a branch**, choose `main` and `/ (root)`, then save.
-4. After a minute the game is live at `https://<your-username>.github.io/tothemoon/`.
+4. After a minute the game is live at `https://<your-username>.github.io/merge/`.
 
 ## Donations
 
