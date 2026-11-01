@@ -152,7 +152,7 @@ footer { color:var(--muted); font-size:0.8rem; }
         <h3>Splitting asteroids</h3>
         <p>Large asteroids break into two medium ones when hit, and medium asteroids break into two small ones. Only small asteroids are destroyed outright. Smaller pieces move faster but are worth more, so clearing a whole cluster pays off.</p>
         <h3>Power-up coins</h3>
-        <p>A glowing coin drifts down now and then — shoot it or fly into it, no danger if you miss it. A BTC coin gives your rocket a wide beam for a few seconds, strong enough to tear through anything in its path. An XNO coin is the strongest: it instantly clears every asteroid on screen.</p>
+        <p>A glowing coin drifts down now and then — shoot it or fly into it, no danger if you miss it. A BTC coin gives your rocket a steady beam for a few seconds: stand under asteroids and it destroys them continuously, no shooting needed. An ETH coin gives rapid fire — faster, wider shots for a few seconds. A pink coin is an extra life (or a score bonus if you're already full). An XNO coin is the strongest: it instantly clears every asteroid on screen.</p>
         <h3>Scoring</h3>
         <p>Points scale up with your combo — asteroids destroyed back to back without taking a hit. Getting hit, or letting one slip past, resets the combo.</p>
         <h3>Modes</h3>
@@ -342,16 +342,16 @@ footer { color:var(--muted); font-size:0.8rem; }
   let shipX = W / 2, targetX = W / 2, keyDir = 0, score = 0, combo = 0, bestCombo = 0, lives = 3, livesStart = 3;
   let destroyed = 0, elapsed = 0, timeLeft = QUICK_TIME, spawnAcc = 0, fireAcc = 0, phase = "playing", invulnT = 0;
   let dailyCfg = null, dailyIdx = 0, dailyEvents = [], dailyProcessed = 0, dailyTotalSpawned = 0;
-  let shakeT = 0, flashT = 0, nukeFlashT = 0, beamT = 0, dotT = 0, slowT = 0, nextId = 1, running = true, lastT = 0;
-  const MAX_ROCKS = 16, BEAM_HW = 20;
+  let shakeT = 0, flashT = 0, nukeFlashT = 0, beamT = 0, rapidT = 0, nextId = 1, running = true, lastT = 0;
+  const MAX_ROCKS = 12, BEAM_HW = 20;
   function spawnIntervalFor() {
-    if (mode === "survival") return Math.max(340, 1050 - elapsed * 7);
-    if (mode === "quick") return Math.max(360, 1000 - (QUICK_TIME - timeLeft) * 5);
+    if (mode === "survival") return Math.max(400, 1050 - elapsed * 6);
+    if (mode === "quick") return Math.max(420, 1000 - (QUICK_TIME - timeLeft) * 4);
     return 820;
   }
   function speedMultFor() {
-    if (mode === "survival") return Math.min(0.6 + elapsed * 0.011, 1.55);
-    if (mode === "quick") return Math.min(0.65 + (QUICK_TIME - timeLeft) * 0.007, 1.35);
+    if (mode === "survival") return Math.min(0.55 + elapsed * 0.009, 1.4);
+    if (mode === "quick") return Math.min(0.6 + (QUICK_TIME - timeLeft) * 0.006, 1.2);
     return 0.85;
   }
   function pick3(r) { return r < 0.6 ? 0 : (r < 0.88 ? 1 : 2); } // weighted toward small on direct spawns, but early game should favor large-ish; tune via caller
@@ -361,7 +361,7 @@ footer { color:var(--muted); font-size:0.8rem; }
     rocks.push({ id: nextId++, tier: tierIdx, x: x, y: -t.r - 6, vx: vx, vy: t.speed * speedMultFor(), r: t.r, rot: rng() * 6.28, vrot: (rng() - 0.5) * 1.6, flash: 0 });
   }
   const POWERUPS = [
-    { id: "xno", w: 0.14 }, { id: "life", w: 0.10 }, { id: "btc", w: 0.24 }, { id: "dot", w: 0.24 }, { id: "eth", w: 0.28 }
+    { id: "xno", w: 0.16 }, { id: "life", w: 0.16 }, { id: "btc", w: 0.34 }, { id: "eth", w: 0.34 }
   ];
   function pickPowerupKind(r) {
     let acc = 0;
@@ -385,6 +385,9 @@ footer { color:var(--muted); font-size:0.8rem; }
   }
   function spawnPowerup(kind) { coins.push({ id: nextId++, x: 24 + rng() * (W - 48), y: -16, vy: 60, r: 11, t: 0, kind: kind || "xno" }); }
   function colorForTier(tier) { return tier === 0 ? "#cbd5e1" : tier === 1 ? "#9fb0c9" : "#6f8099"; }
+  function hexToRgba(hex, a) {
+    const n = parseInt(hex.slice(1), 16); return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
+  }
   function burst(x, y, color, n) {
     for (let i = 0; i < (n || 10); i++) { const a = rng() * Math.PI * 2; particles.push({ x: x, y: y, vx: Math.cos(a) * (50 + rng() * 90), vy: Math.sin(a) * (50 + rng() * 90), life: 0.55, color: color }); }
   }
@@ -423,14 +426,11 @@ footer { color:var(--muted); font-size:0.8rem; }
   }
   function collectCoin(co) {
     if (co.kind === "btc") {
-      score += 20; beamT = 6; fireAcc = 0; burst(co.x, co.y, "#f7931a", 14); sfx.coin(); vib(10);
+      score += 20; beamT = 6; burst(co.x, co.y, "#f7931a", 14); sfx.coin(); vib(10);
       toast("BTC power-up — steady beam for 6s!");
-    } else if (co.kind === "dot") {
-      score += 20; dotT = 6; fireAcc = 0; burst(co.x, co.y, "#ff5c97", 14); sfx.coin(); vib(10);
-      toast("DOT power-up — flak burst for 6s!");
     } else if (co.kind === "eth") {
-      score += 15; slowT = 6; burst(co.x, co.y, "#8c9eff", 14); sfx.coin(); vib(10);
-      toast("ETH power-up — asteroids slowed for 6s!");
+      score += 15; rapidT = 6; fireAcc = 0; burst(co.x, co.y, "#8c9eff", 14); sfx.coin(); vib(10);
+      toast("ETH power-up — rapid fire for 6s!");
     } else if (co.kind === "life") {
       if (lives < livesMax()) { lives++; burst(co.x, co.y, "#ff6b9d", 18); sfx.coin(); vib([0, 20, 20, 20]); toast("Extra life!"); }
       else { score += 100; burst(co.x, co.y, "#ff6b9d", 14); sfx.coin(); toast("Already at full lives — +100 score instead!"); }
@@ -476,7 +476,7 @@ footer { color:var(--muted); font-size:0.8rem; }
 
   function resetRoundState() {
     rocks = []; bullets = []; coins = []; particles = []; score = 0; combo = 0; bestCombo = 0; destroyed = 0;
-    elapsed = 0; spawnAcc = 0; fireAcc = 0; timeLeft = QUICK_TIME; shakeT = 0; flashT = 0; invulnT = 0; nukeFlashT = 0; beamT = 0;
+    elapsed = 0; spawnAcc = 0; fireAcc = 0; timeLeft = QUICK_TIME; shakeT = 0; flashT = 0; invulnT = 0; nukeFlashT = 0; beamT = 0; rapidT = 0;
     livesStart = livesMax(); lives = livesStart; shipX = W / 2; targetX = W / 2;
     dailyIdx = 0; dailyProcessed = 0; dailyTotalSpawned = 0;
   }
@@ -548,7 +548,7 @@ footer { color:var(--muted); font-size:0.8rem; }
     if (keyDir !== 0) targetX = Math.max(SHIP_R + 2, Math.min(W - SHIP_R - 2, targetX + keyDir * 260 * dt));
     shipX += (targetX - shipX) * Math.min(1, dt * 14);
     fireAcc += dt * 1000;
-    const fireIv = beamT > 0 ? 90 : FIRE_INTERVAL, bulletHw = beamT > 0 ? 20 : 3;
+    const fireIv = rapidT > 0 ? 95 : FIRE_INTERVAL, bulletHw = rapidT > 0 ? 16 : 3;
     while (fireAcc >= fireIv) { fireAcc -= fireIv; bullets.push({ x: shipX, y: SHIP_Y - 16, hw: bulletHw }); sfx.laser(); }
     spawnAcc += dt * 1000;
     const iv = spawnIntervalFor();
@@ -561,9 +561,10 @@ footer { color:var(--muted); font-size:0.8rem; }
     }
     for (let i = coins.length - 1; i >= 0; i--) { const co = coins[i]; co.y += co.vy * dt; co.t += dt; if (co.y - co.r > H) coins.splice(i, 1); }
     bulletHitCheck(); shipHitCheck();
+    if (beamT > 0) beamTick();
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 140 * dt; p.life -= dt; if (p.life <= 0) particles.splice(i, 1); }
     if (invulnT > 0) invulnT -= dt; if (shakeT > 0) shakeT -= dt; if (flashT > 0) flashT -= dt;
-    if (nukeFlashT > 0) nukeFlashT -= dt; if (beamT > 0) beamT -= dt;
+    if (nukeFlashT > 0) nukeFlashT -= dt; if (beamT > 0) beamT -= dt; if (rapidT > 0) rapidT -= dt;
     if (mode === "daily" && dailyProcessed >= DAILY_TARGET && !rocks.length) endRound();
     renderHud(); draw();
   }
@@ -577,12 +578,13 @@ footer { color:var(--muted); font-size:0.8rem; }
     for (let i = 0; i < 40; i++) { const sx = (i * 97) % W, sy = (i * 53 + Math.floor(elapsed * 18)) % H; ctx.globalAlpha = 0.15 + (i % 5) * 0.08; ctx.fillRect(sx, sy, 1.4, 1.4); }
     ctx.globalAlpha = 1;
     const accentCol = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#4ea1ff";
+    const COIN_LOOK = { xno: { c: "#26d6c7", t: "XNO" }, btc: { c: "#f7931a", t: "BTC" }, eth: { c: "#8c9eff", t: "ETH" }, life: { c: "#ff6b9d", t: "+1" } };
     coins.forEach(function (co) {
-      const isBtc = co.kind === "btc", col = isBtc ? "#f7931a" : "#26d6c7";
+      const look = COIN_LOOK[co.kind] || COIN_LOOK.xno;
       ctx.save(); ctx.translate(co.x, co.y);
-      ctx.fillStyle = isBtc ? "rgba(247,147,26,0.16)" : "rgba(38,214,199,0.16)"; ctx.strokeStyle = col; ctx.lineWidth = 2;
+      ctx.fillStyle = hexToRgba(look.c, 0.16); ctx.strokeStyle = look.c; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(0, 0, co.r + Math.sin(co.t * 6) * 1.2, 0, 7); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = col; ctx.font = "700 9px 'JetBrains Mono',monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(isBtc ? "BTC" : "XNO", 0, 1);
+      ctx.fillStyle = look.c; ctx.font = "700 9px 'JetBrains Mono',monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(look.t, 0, 1);
       ctx.restore();
     });
     rocks.forEach(function (rk) {
@@ -594,9 +596,19 @@ footer { color:var(--muted); font-size:0.8rem; }
       ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.restore();
     });
+    if (beamT > 0) {
+      ctx.save();
+      const flick = 0.55 + 0.25 * Math.sin(elapsed * 40);
+      const bg = ctx.createLinearGradient(shipX, 0, shipX, SHIP_Y - 6);
+      bg.addColorStop(0, "rgba(247,147,26,0)"); bg.addColorStop(1, hexToRgba("#f7931a", flick));
+      ctx.fillStyle = bg; ctx.fillRect(shipX - BEAM_HW, 0, BEAM_HW * 2, SHIP_Y - 6);
+      ctx.fillStyle = hexToRgba("#fff3e0", 0.5 + 0.2 * Math.sin(elapsed * 40));
+      ctx.fillRect(shipX - 2, 0, 4, SHIP_Y - 6);
+      ctx.restore();
+    }
     bullets.forEach(function (b) {
       const hw = b.hw || 3;
-      if (hw > 3) { ctx.fillStyle = "rgba(247,147,26,0.9)"; ctx.fillRect(b.x - hw, b.y - 10, hw * 2, 18); }
+      if (hw > 3) { ctx.fillStyle = "rgba(140,158,255,0.9)"; ctx.fillRect(b.x - hw, b.y - 9, hw * 2, 16); }
       else { ctx.fillStyle = accentCol; ctx.fillRect(b.x - 1.5, b.y - 7, 3, 12); }
     });
     particles.forEach(function (p) { ctx.globalAlpha = Math.max(0, p.life / 0.55); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 2.4, 0, 7); ctx.fill(); ctx.globalAlpha = 1; });
@@ -777,7 +789,7 @@ footer { color:var(--muted); font-size:0.8rem; }
         for (let i = 0; i < n && phase === "playing"; i++) {
           elapsed += dt; if (mode === "quick") timeLeft = Math.max(0, timeLeft - dt);
           fireAcc += dt * 1000;
-          const fireIv2 = beamT > 0 ? 90 : FIRE_INTERVAL, bulletHw2 = beamT > 0 ? 20 : 3;
+          const fireIv2 = rapidT > 0 ? 95 : FIRE_INTERVAL, bulletHw2 = rapidT > 0 ? 16 : 3;
           while (fireAcc >= fireIv2) { fireAcc -= fireIv2; bullets.push({ x: shipX, y: SHIP_Y - 16, hw: bulletHw2 }); }
           spawnAcc += dt * 1000; const iv = spawnIntervalFor();
           while (spawnAcc >= iv) { spawnAcc -= iv; if (mode !== "daily" || dailyIdx < dailyEvents.length) spawnWave(); }
@@ -789,8 +801,9 @@ footer { color:var(--muted); font-size:0.8rem; }
           }
           for (let ci = coins.length - 1; ci >= 0; ci--) { const co = coins[ci]; co.y += co.vy * dt; if (co.y - co.r > H) coins.splice(ci, 1); }
           bulletHitCheck(); shipHitCheck();
+          if (beamT > 0) beamTick();
           if (invulnT > 0) invulnT -= dt;
-          if (beamT > 0) beamT -= dt; if (nukeFlashT > 0) nukeFlashT -= dt;
+          if (beamT > 0) beamT -= dt; if (rapidT > 0) rapidT -= dt; if (nukeFlashT > 0) nukeFlashT -= dt;
           if (mode === "quick" && timeLeft <= 0) { endRound(); break; }
           if (mode === "daily" && dailyProcessed >= DAILY_TARGET && !rocks.length) { endRound(); break; }
           if (phase === "done") break;
@@ -805,7 +818,8 @@ footer { color:var(--muted); font-size:0.8rem; }
       get phase() { return phase; }, get rocks() { return rocks; }, get bullets() { return bullets; }, get coins() { return coins; }, get score() { return score; },
       get combo() { return combo; }, get lives() { return lives; }, get destroyed() { return destroyed; }, get daily() { return daily; }, get stats() { return stats; },
       get dailyProcessed() { return dailyProcessed; }, get dailyEvents() { return dailyEvents; }, get shipX() { return shipX; }, get invulnT() { return invulnT; },
-      get beamT() { return beamT; }, get nukeFlashT() { return nukeFlashT; },
+      get beamT() { return beamT; }, get rapidT() { return rapidT; }, get nukeFlashT() { return nukeFlashT; }, get livesMaxVal() { return livesMax(); },
+      setBeamT: function (v) { beamT = v; }, setRapidT: function (v) { rapidT = v; }, beamTickOnce: function () { beamTick(); },
       setSupporter: function (v) { supporter = v; }
     };
   }

@@ -6,8 +6,12 @@ A free, single-file browser asteroid-shooting game with Nano at its heart. Steer
 
 - **Steer** by dragging your finger (or mouse) across the board, or with the arrow keys / A and D. Your rocket fires automatically. A **Full screen** button is available if your browser supports it.
 - **Splitting asteroids:** large asteroids break into two medium ones when hit; medium ones break into two small ones. Only small asteroids are destroyed outright, so a big rock pays off if you can clear the whole cluster.
-- **Difficulty eases in:** asteroids start slower and gradually pick up speed the longer a round goes, rather than coming in fast from the first second.
-- **Power-up coins:** drift down now and then (not often) — shoot one or fly into it, no danger if you miss. A **BTC** coin gives your rocket a wide, rapid-fire beam for 7 seconds that tears through anything in its path. An **XNO** coin is the strongest pickup: it instantly destroys every asteroid currently on screen.
+- **Difficulty eases in:** asteroids start slower and gradually pick up speed the longer a round goes, rather than coming in fast from the first second, and the number on screen at once is capped so it can't pile up into an unfair wall.
+- **Power-up coins:** drift down now and then (not often) — shoot one or fly into it, no danger if you miss.
+  - **BTC** — a steady beam for 6 seconds: stand under asteroids and it destroys them continuously, no shooting needed.
+  - **ETH** — rapid fire for 6 seconds: faster, wider shots.
+  - **Pink (+1)** — an extra life, or a +100 score bonus if you're already at full lives.
+  - **XNO** — the strongest: instantly destroys every asteroid currently on screen.
 - **Daily challenge:** the same asteroid field for everyone, new every day at 00:00 UTC. Destroy 40 asteroids to clear the day and keep your streak.
 - **Quick 60:** 60 seconds, score as much as you can.
 - **Survival:** endless — asteroids get faster and more frequent the longer you last.
