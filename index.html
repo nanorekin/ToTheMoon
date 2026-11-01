@@ -342,15 +342,16 @@ footer { color:var(--muted); font-size:0.8rem; }
   let shipX = W / 2, targetX = W / 2, keyDir = 0, score = 0, combo = 0, bestCombo = 0, lives = 3, livesStart = 3;
   let destroyed = 0, elapsed = 0, timeLeft = QUICK_TIME, spawnAcc = 0, fireAcc = 0, phase = "playing", invulnT = 0;
   let dailyCfg = null, dailyIdx = 0, dailyEvents = [], dailyProcessed = 0, dailyTotalSpawned = 0;
-  let shakeT = 0, flashT = 0, nukeFlashT = 0, beamT = 0, nextId = 1, running = true, lastT = 0;
+  let shakeT = 0, flashT = 0, nukeFlashT = 0, beamT = 0, dotT = 0, slowT = 0, nextId = 1, running = true, lastT = 0;
+  const MAX_ROCKS = 16, BEAM_HW = 20;
   function spawnIntervalFor() {
-    if (mode === "survival") return Math.max(260, 1000 - elapsed * 11);
-    if (mode === "quick") return Math.max(300, 950 - (QUICK_TIME - timeLeft) * 7);
-    return 760;
+    if (mode === "survival") return Math.max(340, 1050 - elapsed * 7);
+    if (mode === "quick") return Math.max(360, 1000 - (QUICK_TIME - timeLeft) * 5);
+    return 820;
   }
   function speedMultFor() {
-    if (mode === "survival") return Math.min(0.6 + elapsed * 0.016, 1.9);
-    if (mode === "quick") return Math.min(0.65 + (QUICK_TIME - timeLeft) * 0.0095, 1.5);
+    if (mode === "survival") return Math.min(0.6 + elapsed * 0.011, 1.55);
+    if (mode === "quick") return Math.min(0.65 + (QUICK_TIME - timeLeft) * 0.007, 1.35);
     return 0.85;
   }
   function pick3(r) { return r < 0.6 ? 0 : (r < 0.88 ? 1 : 2); } // weighted toward small on direct spawns, but early game should favor large-ish; tune via caller
@@ -359,19 +360,28 @@ footer { color:var(--muted); font-size:0.8rem; }
     const t = TIERS[tierIdx];
     rocks.push({ id: nextId++, tier: tierIdx, x: x, y: -t.r - 6, vx: vx, vy: t.speed * speedMultFor(), r: t.r, rot: rng() * 6.28, vrot: (rng() - 0.5) * 1.6, flash: 0 });
   }
+  const POWERUPS = [
+    { id: "xno", w: 0.14 }, { id: "life", w: 0.10 }, { id: "btc", w: 0.24 }, { id: "dot", w: 0.24 }, { id: "eth", w: 0.28 }
+  ];
+  function pickPowerupKind(r) {
+    let acc = 0;
+    for (let i = 0; i < POWERUPS.length; i++) { acc += POWERUPS[i].w; if (r < acc) return POWERUPS[i].id; }
+    return POWERUPS[POWERUPS.length - 1].id;
+  }
   function spawnWave() {
     if (mode === "daily") {
-      if (dailyIdx >= dailyEvents.length) return;
+      if (dailyIdx >= dailyEvents.length || rocks.length >= MAX_ROCKS) return;
       const ev = dailyEvents[dailyIdx++];
       spawnRock(ev.tier, ev.x, ev.vx);
       dailyTotalSpawned++;
       return;
     }
+    if (rocks.length >= MAX_ROCKS) return;
     const r = rng();
     const tier = elapsed < 12 ? (r < 0.75 ? 2 : 1) : (r < 0.5 ? 2 : (r < 0.8 ? 1 : 0));
     const x = 30 + rng() * (W - 60), vx = (rng() - 0.5) * 30;
     spawnRock(tier, x, vx);
-    if (rng() < 0.022) spawnPowerup(rng() < 0.3 ? "xno" : "btc");
+    if (rng() < 0.028) spawnPowerup(pickPowerupKind(rng()));
   }
   function spawnPowerup(kind) { coins.push({ id: nextId++, x: 24 + rng() * (W - 48), y: -16, vy: 60, r: 11, t: 0, kind: kind || "xno" }); }
   function colorForTier(tier) { return tier === 0 ? "#cbd5e1" : tier === 1 ? "#9fb0c9" : "#6f8099"; }
@@ -413,11 +423,30 @@ footer { color:var(--muted); font-size:0.8rem; }
   }
   function collectCoin(co) {
     if (co.kind === "btc") {
-      score += 20; beamT = 7; fireAcc = 0; burst(co.x, co.y, "#f7931a", 14); sfx.coin(); vib(10);
-      toast("BTC power-up — wide beam for 7s!");
+      score += 20; beamT = 6; fireAcc = 0; burst(co.x, co.y, "#f7931a", 14); sfx.coin(); vib(10);
+      toast("BTC power-up — steady beam for 6s!");
+    } else if (co.kind === "dot") {
+      score += 20; dotT = 6; fireAcc = 0; burst(co.x, co.y, "#ff5c97", 14); sfx.coin(); vib(10);
+      toast("DOT power-up — flak burst for 6s!");
+    } else if (co.kind === "eth") {
+      score += 15; slowT = 6; burst(co.x, co.y, "#8c9eff", 14); sfx.coin(); vib(10);
+      toast("ETH power-up — asteroids slowed for 6s!");
+    } else if (co.kind === "life") {
+      if (lives < livesMax()) { lives++; burst(co.x, co.y, "#ff6b9d", 18); sfx.coin(); vib([0, 20, 20, 20]); toast("Extra life!"); }
+      else { score += 100; burst(co.x, co.y, "#ff6b9d", 14); sfx.coin(); toast("Already at full lives — +100 score instead!"); }
     } else {
       score += 30; triggerNuke(); burst(co.x, co.y, "#26d6c7", 20); sfx.coin(); vib([0, 20, 40, 20]);
       toast("XNO power-up — cleared the field!");
+    }
+  }
+  function beamTick() {
+    for (let ri = rocks.length - 1; ri >= 0; ri--) {
+      const rk = rocks[ri];
+      if (rk.y < SHIP_Y - 6 && Math.abs(rk.x - shipX) <= BEAM_HW + rk.r) splitOrDestroy(rk);
+    }
+    for (let ci = coins.length - 1; ci >= 0; ci--) {
+      const co = coins[ci];
+      if (co.y < SHIP_Y - 6 && Math.abs(co.x - shipX) <= BEAM_HW + co.r) { collectCoin(co); coins.splice(ci, 1); }
     }
   }
   function triggerNuke() {
