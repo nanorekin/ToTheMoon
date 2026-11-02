@@ -152,7 +152,7 @@ footer { color:var(--muted); font-size:0.8rem; }
         <h3>Splitting asteroids</h3>
         <p>Large asteroids break into two medium ones when hit, and medium asteroids break into two small ones. Only small asteroids are destroyed outright. Smaller pieces move faster but are worth more, so clearing a whole cluster pays off.</p>
         <h3>Power-up coins</h3>
-        <p>A glowing coin drifts down now and then — shoot it or fly into it, no danger if you miss it. A BTC coin gives your rocket a steady beam for a few seconds: stand under asteroids and it destroys them continuously, no shooting needed. An ETH coin gives rapid fire — faster, wider shots for a few seconds. A pink coin is an extra life (or a score bonus if you're already full). An XNO coin is the strongest: it instantly clears every asteroid on screen.</p>
+        <p>Glowing coins drift down fairly often now — shoot one or fly into it, no danger if you miss it. A BTC coin gives your rocket a steady beam for a few seconds: stand under asteroids and it destroys them continuously, no shooting needed. An ETH coin gives rapid fire — faster, wider shots for a few seconds. A SOL coin slows time for a few seconds, giving you breathing room to dodge and aim. A pink coin is an extra life (or a score bonus if you're already full). An XNO coin is the strongest: it instantly clears every asteroid on screen. Watch out for the red FUD coin — it's a trap that triggers a spam attack, flooding the screen with extra asteroids.</p>
         <h3>Scoring</h3>
         <p>Points scale up with your combo — asteroids destroyed back to back without taking a hit. Getting hit, or letting one slip past, resets the combo.</p>
         <h3>Modes</h3>
@@ -295,7 +295,8 @@ footer { color:var(--muted); font-size:0.8rem; }
     boom: function (combo) { const k = 1 + Math.min(combo, 15) * 0.03; beep(200 * k, 0.1, "sawtooth", 0.05); beep(100 * k, 0.16, "sawtooth", 0.04, 0.04); },
     coin: function () { beep(880, 0.08, "triangle", 0.05); beep(1320, 0.14, "triangle", 0.05, 0.06); },
     life: function () { beep(300, 0.22, "sawtooth", 0.05); beep(170, 0.3, "sawtooth", 0.05, 0.12); },
-    win: function () { [523, 659, 784, 1047].forEach(function (f, i) { beep(f, 0.16, "triangle", 0.07, i * 0.1); }); }
+    win: function () { [523, 659, 784, 1047].forEach(function (f, i) { beep(f, 0.16, "triangle", 0.07, i * 0.1); }); },
+    spam: function () { [220, 180, 150, 120].forEach(function (f, i) { beep(f, 0.09, "square", 0.05, i * 0.07); }); }
   };
   function vib(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
   function renderSound() { $("snd").textContent = muted ? "Sound off" : "Sound on"; $("snd").setAttribute("aria-pressed", muted ? "false" : "true"); }
@@ -342,7 +343,7 @@ footer { color:var(--muted); font-size:0.8rem; }
   let shipX = W / 2, targetX = W / 2, keyDir = 0, score = 0, combo = 0, bestCombo = 0, lives = 3, livesStart = 3;
   let destroyed = 0, elapsed = 0, timeLeft = QUICK_TIME, spawnAcc = 0, fireAcc = 0, phase = "playing", invulnT = 0;
   let dailyCfg = null, dailyIdx = 0, dailyEvents = [], dailyProcessed = 0, dailyTotalSpawned = 0;
-  let shakeT = 0, flashT = 0, nukeFlashT = 0, beamT = 0, rapidT = 0, nextId = 1, running = true, lastT = 0;
+  let shakeT = 0, flashT = 0, nukeFlashT = 0, beamT = 0, rapidT = 0, slowT = 0, spamFlashT = 0, nextId = 1, running = true, lastT = 0;
   const MAX_ROCKS = 12, BEAM_HW = 20;
   function spawnIntervalFor() {
     if (mode === "survival") return Math.max(400, 1050 - elapsed * 6);
@@ -361,7 +362,7 @@ footer { color:var(--muted); font-size:0.8rem; }
     rocks.push({ id: nextId++, tier: tierIdx, x: x, y: -t.r - 6, vx: vx, vy: t.speed * speedMultFor(), r: t.r, rot: rng() * 6.28, vrot: (rng() - 0.5) * 1.6, flash: 0 });
   }
   const POWERUPS = [
-    { id: "xno", w: 0.16 }, { id: "life", w: 0.16 }, { id: "btc", w: 0.34 }, { id: "eth", w: 0.34 }
+    { id: "xno", w: 0.12 }, { id: "life", w: 0.16 }, { id: "btc", w: 0.2 }, { id: "eth", w: 0.2 }, { id: "sol", w: 0.2 }, { id: "fud", w: 0.12 }
   ];
   function pickPowerupKind(r) {
     let acc = 0;
@@ -381,7 +382,7 @@ footer { color:var(--muted); font-size:0.8rem; }
     const tier = elapsed < 12 ? (r < 0.75 ? 2 : 1) : (r < 0.5 ? 2 : (r < 0.8 ? 1 : 0));
     const x = 30 + rng() * (W - 60), vx = (rng() - 0.5) * 30;
     spawnRock(tier, x, vx);
-    if (rng() < 0.028) spawnPowerup(pickPowerupKind(rng()));
+    if (rng() < 0.062) spawnPowerup(pickPowerupKind(rng()));
   }
   function spawnPowerup(kind) { coins.push({ id: nextId++, x: 24 + rng() * (W - 48), y: -16, vy: 60, r: 11, t: 0, kind: kind || "xno" }); }
   function colorForTier(tier) { return tier === 0 ? "#cbd5e1" : tier === 1 ? "#9fb0c9" : "#6f8099"; }
@@ -434,10 +435,26 @@ footer { color:var(--muted); font-size:0.8rem; }
     } else if (co.kind === "life") {
       if (lives < livesMax()) { lives++; burst(co.x, co.y, "#ff6b9d", 18); sfx.coin(); vib([0, 20, 20, 20]); toast("Extra life!"); }
       else { score += 100; burst(co.x, co.y, "#ff6b9d", 14); sfx.coin(); toast("Already at full lives — +100 score instead!"); }
+    } else if (co.kind === "sol") {
+      score += 10; slowT = 5; burst(co.x, co.y, "#b26bff", 14); sfx.coin(); vib(10);
+      toast("SOL power-up — time slows for 5s!");
+    } else if (co.kind === "fud") {
+      triggerSpam(); burst(co.x, co.y, "#ef4444", 16); sfx.spam(); vib([0, 40, 30, 40, 30, 40]);
+      toast("FUD! A spam attack is incoming!");
     } else {
       score += 30; triggerNuke(); burst(co.x, co.y, "#26d6c7", 20); sfx.coin(); vib([0, 20, 40, 20]);
       toast("XNO power-up — cleared the field!");
     }
+  }
+  function triggerSpam() {
+    const n = 6;
+    for (let i = 0; i < n; i++) {
+      const r = rng(); const tier = r < 0.6 ? 0 : (r < 0.92 ? 1 : 2);
+      const x = 20 + rng() * (W - 40), vx = (rng() - 0.5) * 40;
+      const t = TIERS[tier];
+      rocks.push({ id: nextId++, tier: tier, x: x, y: -t.r - 6 - rng() * 60, vx: vx, vy: t.speed * speedMultFor() * 1.15, r: t.r, rot: rng() * 6.28, vrot: (rng() - 0.5) * 1.6, flash: 0 });
+    }
+    spamFlashT = 0.5; shakeT = Math.max(shakeT, 0.35);
   }
   function beamTick() {
     for (let ri = rocks.length - 1; ri >= 0; ri--) {
@@ -476,7 +493,7 @@ footer { color:var(--muted); font-size:0.8rem; }
 
   function resetRoundState() {
     rocks = []; bullets = []; coins = []; particles = []; score = 0; combo = 0; bestCombo = 0; destroyed = 0;
-    elapsed = 0; spawnAcc = 0; fireAcc = 0; timeLeft = QUICK_TIME; shakeT = 0; flashT = 0; invulnT = 0; nukeFlashT = 0; beamT = 0; rapidT = 0;
+    elapsed = 0; spawnAcc = 0; fireAcc = 0; timeLeft = QUICK_TIME; shakeT = 0; flashT = 0; invulnT = 0; nukeFlashT = 0; beamT = 0; rapidT = 0; slowT = 0; spamFlashT = 0;
     livesStart = livesMax(); lives = livesStart; shipX = W / 2; targetX = W / 2;
     dailyIdx = 0; dailyProcessed = 0; dailyTotalSpawned = 0;
   }
@@ -555,7 +572,7 @@ footer { color:var(--muted); font-size:0.8rem; }
     while (spawnAcc >= iv) { spawnAcc -= iv; if (mode !== "daily" || dailyIdx < dailyEvents.length) spawnWave(); }
     for (let i = bullets.length - 1; i >= 0; i--) { const b = bullets[i]; b.y -= 480 * dt; if (b.y < -10) bullets.splice(i, 1); }
     for (let i = rocks.length - 1; i >= 0; i--) {
-      const rk = rocks[i]; rk.x += rk.vx * dt; rk.y += rk.vy * dt; rk.rot += rk.vrot * dt;
+      const rk = rocks[i]; const sm = slowT > 0 ? 0.5 : 1; rk.x += rk.vx * dt * sm; rk.y += rk.vy * dt * sm; rk.rot += rk.vrot * dt;
       if (rk.x < rk.r) { rk.x = rk.r; rk.vx = Math.abs(rk.vx); } else if (rk.x > W - rk.r) { rk.x = W - rk.r; rk.vx = -Math.abs(rk.vx); }
       if (rk.y - rk.r > H) { rocks.splice(i, 1); combo = 0; if (mode === "daily") dailyProcessed++; }
     }
@@ -565,6 +582,7 @@ footer { color:var(--muted); font-size:0.8rem; }
     for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 140 * dt; p.life -= dt; if (p.life <= 0) particles.splice(i, 1); }
     if (invulnT > 0) invulnT -= dt; if (shakeT > 0) shakeT -= dt; if (flashT > 0) flashT -= dt;
     if (nukeFlashT > 0) nukeFlashT -= dt; if (beamT > 0) beamT -= dt; if (rapidT > 0) rapidT -= dt;
+    if (slowT > 0) slowT -= dt; if (spamFlashT > 0) spamFlashT -= dt;
     if (mode === "daily" && dailyProcessed >= DAILY_TARGET && !rocks.length) endRound();
     renderHud(); draw();
   }
@@ -578,7 +596,7 @@ footer { color:var(--muted); font-size:0.8rem; }
     for (let i = 0; i < 40; i++) { const sx = (i * 97) % W, sy = (i * 53 + Math.floor(elapsed * 18)) % H; ctx.globalAlpha = 0.15 + (i % 5) * 0.08; ctx.fillRect(sx, sy, 1.4, 1.4); }
     ctx.globalAlpha = 1;
     const accentCol = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#4ea1ff";
-    const COIN_LOOK = { xno: { c: "#26d6c7", t: "XNO" }, btc: { c: "#f7931a", t: "BTC" }, eth: { c: "#8c9eff", t: "ETH" }, life: { c: "#ff6b9d", t: "+1" } };
+    const COIN_LOOK = { xno: { c: "#26d6c7", t: "XNO" }, btc: { c: "#f7931a", t: "BTC" }, eth: { c: "#8c9eff", t: "ETH" }, life: { c: "#ff6b9d", t: "+1" }, sol: { c: "#b26bff", t: "SOL" }, fud: { c: "#ef4444", t: "FUD" } };
     coins.forEach(function (co) {
       const look = COIN_LOOK[co.kind] || COIN_LOOK.xno;
       ctx.save(); ctx.translate(co.x, co.y);
@@ -626,6 +644,8 @@ footer { color:var(--muted); font-size:0.8rem; }
     if (flashT > 0) { ctx.fillStyle = "rgba(255,107,107," + (flashT / 0.25 * 0.18) + ")"; ctx.fillRect(0, 0, W, H); }
     if (nukeFlashT > 0) { ctx.fillStyle = "rgba(38,214,199," + (nukeFlashT / 0.4 * 0.3) + ")"; ctx.fillRect(0, 0, W, H); }
     if (beamT > 0) { ctx.fillStyle = "rgba(247,147,26," + (0.05 + 0.03 * Math.sin(elapsed * 20)) + ")"; ctx.fillRect(0, 0, W, H); }
+    if (slowT > 0) { ctx.fillStyle = "rgba(178,107,255," + (0.06 + 0.03 * Math.sin(elapsed * 6)) + ")"; ctx.fillRect(0, 0, W, H); }
+    if (spamFlashT > 0) { ctx.fillStyle = "rgba(239,68,68," + (spamFlashT / 0.5 * 0.3) + ")"; ctx.fillRect(0, 0, W, H); }
     ctx.restore();
   }
   requestAnimationFrame(step);
@@ -795,7 +815,7 @@ footer { color:var(--muted); font-size:0.8rem; }
           while (spawnAcc >= iv) { spawnAcc -= iv; if (mode !== "daily" || dailyIdx < dailyEvents.length) spawnWave(); }
           for (let bi = bullets.length - 1; bi >= 0; bi--) { const b = bullets[bi]; b.y -= 480 * dt; if (b.y < -10) bullets.splice(bi, 1); }
           for (let ri = rocks.length - 1; ri >= 0; ri--) {
-            const rk = rocks[ri]; rk.x += rk.vx * dt; rk.y += rk.vy * dt;
+            const rk = rocks[ri]; const sm2 = slowT > 0 ? 0.5 : 1; rk.x += rk.vx * dt * sm2; rk.y += rk.vy * dt * sm2;
             if (rk.x < rk.r) { rk.x = rk.r; rk.vx = Math.abs(rk.vx); } else if (rk.x > W - rk.r) { rk.x = W - rk.r; rk.vx = -Math.abs(rk.vx); }
             if (rk.y - rk.r > H) { rocks.splice(ri, 1); combo = 0; if (mode === "daily") dailyProcessed++; }
           }
@@ -804,6 +824,7 @@ footer { color:var(--muted); font-size:0.8rem; }
           if (beamT > 0) beamTick();
           if (invulnT > 0) invulnT -= dt;
           if (beamT > 0) beamT -= dt; if (rapidT > 0) rapidT -= dt; if (nukeFlashT > 0) nukeFlashT -= dt;
+          if (slowT > 0) slowT -= dt; if (spamFlashT > 0) spamFlashT -= dt;
           if (mode === "quick" && timeLeft <= 0) { endRound(); break; }
           if (mode === "daily" && dailyProcessed >= DAILY_TARGET && !rocks.length) { endRound(); break; }
           if (phase === "done") break;
@@ -819,7 +840,9 @@ footer { color:var(--muted); font-size:0.8rem; }
       get combo() { return combo; }, get lives() { return lives; }, get destroyed() { return destroyed; }, get daily() { return daily; }, get stats() { return stats; },
       get dailyProcessed() { return dailyProcessed; }, get dailyEvents() { return dailyEvents; }, get shipX() { return shipX; }, get invulnT() { return invulnT; },
       get beamT() { return beamT; }, get rapidT() { return rapidT; }, get nukeFlashT() { return nukeFlashT; }, get livesMaxVal() { return livesMax(); },
+      get slowT() { return slowT; }, get spamFlashT() { return spamFlashT; },
       setBeamT: function (v) { beamT = v; }, setRapidT: function (v) { rapidT = v; }, beamTickOnce: function () { beamTick(); },
+      setSlowDirect: function (v) { slowT = v; }, triggerSpamDirect: function () { triggerSpam(); },
       setSupporter: function (v) { supporter = v; }
     };
   }
