@@ -574,7 +574,7 @@ footer { color:var(--muted); font-size:0.8rem; }
     for (let i = rocks.length - 1; i >= 0; i--) {
       const rk = rocks[i]; const sm = slowT > 0 ? 0.5 : 1; rk.x += rk.vx * dt * sm; rk.y += rk.vy * dt * sm; rk.rot += rk.vrot * dt;
       if (rk.x < rk.r) { rk.x = rk.r; rk.vx = Math.abs(rk.vx); } else if (rk.x > W - rk.r) { rk.x = W - rk.r; rk.vx = -Math.abs(rk.vx); }
-      if (rk.y - rk.r > H) { rocks.splice(i, 1); combo = 0; if (mode === "daily") dailyProcessed++; }
+      if (rk.y - rk.r > H) { rocks.splice(i, 1); if (mode === "daily") dailyProcessed++; loseLife(); }
     }
     for (let i = coins.length - 1; i >= 0; i--) { const co = coins[i]; co.y += co.vy * dt; co.t += dt; if (co.y - co.r > H) coins.splice(i, 1); }
     bulletHitCheck(); shipHitCheck();
@@ -817,7 +817,7 @@ footer { color:var(--muted); font-size:0.8rem; }
           for (let ri = rocks.length - 1; ri >= 0; ri--) {
             const rk = rocks[ri]; const sm2 = slowT > 0 ? 0.5 : 1; rk.x += rk.vx * dt * sm2; rk.y += rk.vy * dt * sm2;
             if (rk.x < rk.r) { rk.x = rk.r; rk.vx = Math.abs(rk.vx); } else if (rk.x > W - rk.r) { rk.x = W - rk.r; rk.vx = -Math.abs(rk.vx); }
-            if (rk.y - rk.r > H) { rocks.splice(ri, 1); combo = 0; if (mode === "daily") dailyProcessed++; }
+            if (rk.y - rk.r > H) { rocks.splice(ri, 1); if (mode === "daily") dailyProcessed++; loseLife(); if (phase !== "playing") break; }
           }
           for (let ci = coins.length - 1; ci >= 0; ci--) { const co = coins[ci]; co.y += co.vy * dt; if (co.y - co.r > H) coins.splice(ci, 1); }
           bulletHitCheck(); shipHitCheck();
